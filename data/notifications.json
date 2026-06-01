@@ -1,0 +1,26 @@
+[
+  {
+    "id": "n001",
+    "userId": "u003",
+    "type": "reservation_confirmed",
+    "message": "Your reservation for slot A04 has been confirmed.",
+    "read": false,
+    "createdAt": "2025-12-30T10:01:30.000Z"
+  },
+  {
+    "id": "n_00fddc84",
+    "userId": "u001",
+    "type": "payment_received",
+    "message": "Payment of KES 200 received. M-Pesa code: QGHO41A0HY",
+    "read": false,
+    "createdAt": "2026-05-31T17:54:45.302Z"
+  },
+  {
+    "id": "n_151885c8",
+    "userId": "u001",
+    "type": "reservation_confirmed",
+    "message": "Your reservation for slot C03 (Zone C) has been confirmed.",
+    "read": false,
+    "createdAt": "2026-05-31T17:54:45.959Z"
+  }
+]

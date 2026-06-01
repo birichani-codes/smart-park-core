@@ -1,0 +1,164 @@
+[
+  {
+    "id": "s001",
+    "zone": "A",
+    "slotNumber": "A01",
+    "floor": 1,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s002",
+    "zone": "A",
+    "slotNumber": "A02",
+    "floor": 1,
+    "status": "occupied",
+    "reservedBy": "u003",
+    "reservedUntil": null
+  },
+  {
+    "id": "s003",
+    "zone": "A",
+    "slotNumber": "A03",
+    "floor": 1,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s004",
+    "zone": "A",
+    "slotNumber": "A04",
+    "floor": 1,
+    "status": "reserved",
+    "reservedBy": "u003",
+    "reservedUntil": "2025-12-31T12:00:00.000Z"
+  },
+  {
+    "id": "s005",
+    "zone": "A",
+    "slotNumber": "A05",
+    "floor": 1,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s006",
+    "zone": "A",
+    "slotNumber": "A06",
+    "floor": 1,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s007",
+    "zone": "B",
+    "slotNumber": "B01",
+    "floor": 1,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s008",
+    "zone": "B",
+    "slotNumber": "B02",
+    "floor": 1,
+    "status": "occupied",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s009",
+    "zone": "B",
+    "slotNumber": "B03",
+    "floor": 1,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s010",
+    "zone": "B",
+    "slotNumber": "B04",
+    "floor": 1,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s011",
+    "zone": "B",
+    "slotNumber": "B05",
+    "floor": 2,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s012",
+    "zone": "B",
+    "slotNumber": "B06",
+    "floor": 2,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s013",
+    "zone": "C",
+    "slotNumber": "C01",
+    "floor": 2,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s014",
+    "zone": "C",
+    "slotNumber": "C02",
+    "floor": 2,
+    "status": "occupied",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s015",
+    "zone": "C",
+    "slotNumber": "C03",
+    "floor": 2,
+    "status": "reserved",
+    "reservedBy": "u001",
+    "reservedUntil": "2026-05-31T15:54:00.000Z"
+  },
+  {
+    "id": "s016",
+    "zone": "C",
+    "slotNumber": "C04",
+    "floor": 2,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s017",
+    "zone": "C",
+    "slotNumber": "C05",
+    "floor": 2,
+    "status": "reserved",
+    "reservedBy": null,
+    "reservedUntil": null
+  },
+  {
+    "id": "s018",
+    "zone": "C",
+    "slotNumber": "C06",
+    "floor": 2,
+    "status": "available",
+    "reservedBy": null,
+    "reservedUntil": null
+  }
+]

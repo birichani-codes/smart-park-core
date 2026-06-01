@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking — Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">🚗 <span>Smart</span>Park</div>
+    <nav>
+      <a href="/dashboard"       class="active">📊 Dashboard</a>
+      <a href="/parking-map">🅿️ Parking Map</a>
+      <a href="/reservations">📋 My Reservations</a>
+      <a href="/qr-code">📷 QR Code</a>
+      <a href="/shared-mobility">🚌 Shared Mobility</a>
+      <a href="/admin" data-role="admin,attendant">⚙️ Admin Panel</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sidebar-user" class="fw-600" style="color:#e2e8f0;margin-bottom:4px"></div>
+      <a href="#" onclick="logout()" style="color:#94a3b8;font-size:.8rem">Sign out</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <h2 style="font-size:1.1rem">Dashboard</h2>
+      <span id="topbar-user" class="text-muted" style="font-size:.88rem"></span>
+    </div>
+
+    <div class="page-body">
+      <div id="alert" class="alert hidden"></div>
+
+      <!-- Stats -->
+      <div class="stat-grid" id="stats-grid">
+        <div class="stat-card green">
+          <div class="value" id="stat-available">—</div>
+          <div class="label">Available Slots</div>
+        </div>
+        <div class="stat-card red">
+          <div class="value" id="stat-occupied">—</div>
+          <div class="label">Occupied</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="value" id="stat-reserved">—</div>
+          <div class="label">Reserved</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="value" id="stat-countdown">—</div>
+          <div class="label">Next expiry</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="value" id="stat-reservations">—</div>
+          <div class="label">My Reservations</div>
+        </div>
+      </div>
+
+      <!-- Recent reservations -->
+      <div class="card">
+        <div class="flex" style="justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="font-size:1rem">Recent Reservations</h3>
+          <a href="/parking-map" class="btn btn-primary btn-sm">+ New Reservation</a>
+        </div>
+        <div id="reservations-table">
+          <p class="text-muted">Loading…</p>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="card mt-3">
+        <h3 style="font-size:1rem;margin-bottom:12px">Notifications</h3>
+        <div id="notifications-list"><p class="text-muted">Loading…</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  const user = requireAuth();
+  if (user) {
+    initSidebar();
+    document.getElementById('topbar-user').textContent = `👤 ${user.fullName} (${user.role})`;
+    loadDashboard();
+  }
+
+  async function loadDashboard() {
+    try {
+      // Slot stats
+      const slotsData = await api('/parking/slots');
+      const s = slotsData.data.stats;
+      document.getElementById('stat-available').textContent = s.available;
+      document.getElementById('stat-occupied').textContent  = s.occupied;
+      document.getElementById('stat-reserved').textContent  = s.reserved;
+
+      // My reservations
+      const resData = await api('/reservations/my');
+      const reservations = resData.data.reservations;
+      document.getElementById('stat-reservations').textContent = reservations.length;
+
+      function getExpiry(reservation) {
+        if (reservation.expiresAt) return new Date(reservation.expiresAt);
+        if (!reservation.arrivalTime) return null;
+        return new Date(new Date(reservation.arrivalTime).getTime() + 60 * 60 * 1000);
+      }
+
+      const upcoming = reservations
+        .filter(r => r.status === 'confirmed' && !r.exitTime)
+        .map(r => ({ reservation: r, expiry: getExpiry(r) }))
+        .filter(r => r.expiry)
+        .sort((a, b) => a.expiry - b.expiry);
+
+      if (upcoming.length) {
+        const next = upcoming[0];
+        const deadline = next.expiry;
+        document.getElementById('stat-countdown').textContent = formatCountdown(deadline - new Date());
+        if (window.nextExpiryTimer) clearInterval(window.nextExpiryTimer);
+        window.nextExpiryTimer = setInterval(() => {
+          document.getElementById('stat-countdown').textContent = formatCountdown(deadline - new Date());
+        }, 1000);
+      } else {
+        document.getElementById('stat-countdown').textContent = 'No active expiry';
+      }
+
+      const tbody = reservations.length
+        ? `<table>
+            <thead><tr><th>Slot</th><th>Zone</th><th>Arrival</th><th>Status</th><th></th></tr></thead>
+            <tbody>${reservations.slice(-5).reverse().map(r => `
+              <tr>
+                <td>${r.slotNumber}</td>
+                <td>${r.zone}</td>
+                <td>${formatDate(r.arrivalTime)}</td>
+                <td>${statusBadge(r.status)}</td>
+                <td><a href="/reservations" class="btn btn-outline btn-sm">View</a></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>`
+        : '<p class="text-muted">No reservations yet. <a href="/parking-map">Book a slot →</a></p>';
+      document.getElementById('reservations-table').innerHTML = tbody;
+
+      // Notifications
+      const notifData = await api('/admin/notifications/' + user.id);
+      const notes = notifData.data.notifications;
+      document.getElementById('notifications-list').innerHTML = notes.length
+        ? notes.slice(-5).reverse().map(n => `
+            <div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem">
+              <span>${n.message}</span>
+              <span class="text-muted" style="float:right">${formatDate(n.createdAt)}</span>
+            </div>`).join('')
+        : '<p class="text-muted">No notifications.</p>';
+
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+</script>
+</body>
+</html>

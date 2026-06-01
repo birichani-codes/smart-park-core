@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking — Shared Mobility</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">🚗 <span>Smart</span>Park</div>
+    <nav>
+      <a href="/dashboard">📊 Dashboard</a>
+      <a href="/parking-map">🅿️ Parking Map</a>
+      <a href="/reservations">📋 My Reservations</a>
+      <a href="/qr-code">📷 QR Code</a>
+      <a href="/shared-mobility" class="active">🚌 Shared Mobility</a>
+      <a href="/admin" data-role="admin,attendant">⚙️ Admin Panel</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sidebar-user" class="fw-600" style="color:#e2e8f0;margin-bottom:4px"></div>
+      <a href="#" onclick="logout()" style="color:#94a3b8;font-size:.8rem">Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 style="font-size:1.1rem">Shared Mobility</h2>
+    </div>
+
+    <div class="page-body">
+      <div id="alert" class="alert hidden"></div>
+
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-3">
+        <button class="btn btn-primary" id="tab-find" onclick="switchTab('find')">🔍 Find a Ride</button>
+        <button class="btn btn-outline" id="tab-offer" onclick="switchTab('offer')">🚗 Offer a Ride</button>
+        <button class="btn btn-outline" id="tab-my" onclick="switchTab('my')">📋 My Rides</button>
+      </div>
+
+      <!-- Find a Ride -->
+      <div id="panel-find">
+        <div class="card mb-3">
+          <h3 style="margin-bottom:12px;font-size:.95rem">Search Rides</h3>
+          <div class="flex gap-2" style="flex-wrap:wrap">
+            <div class="form-group" style="flex:1;min-width:160px">
+              <label>Destination</label>
+              <input type="text" id="search-dest" placeholder="e.g. Westlands">
+            </div>
+            <div class="form-group" style="flex:1;min-width:160px">
+              <label>Departure Time</label>
+              <input type="datetime-local" id="search-time">
+            </div>
+            <div class="form-group" style="width:100px">
+              <label>Seats</label>
+              <input type="number" id="search-seats" value="1" min="1" max="4">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="searchRides()">Search</button>
+        </div>
+        <div id="rides-results"><p class="text-muted">Enter a destination and search for available rides.</p></div>
+      </div>
+
+      <!-- Offer a Ride -->
+      <div id="panel-offer" class="hidden">
+        <div class="card" style="max-width:500px">
+          <h3 style="margin-bottom:16px;font-size:.95rem">Post a Ride</h3>
+          <div id="offer-alert" class="alert hidden"></div>
+          <div class="form-group">
+            <label>Origin</label>
+            <input type="text" id="offer-origin" value="Two Rivers Mall">
+          </div>
+          <div class="form-group">
+            <label>Destination</label>
+            <input type="text" id="offer-dest" placeholder="e.g. CBD, Westlands">
+          </div>
+          <div class="form-group">
+            <label>Departure Time</label>
+            <input type="datetime-local" id="offer-time">
+          </div>
+          <div class="form-group">
+            <label>Available Seats</label>
+            <input type="number" id="offer-seats" value="3" min="1" max="6">
+          </div>
+          <div class="form-group">
+            <label>Total Trip Cost (KES)</label>
+            <input type="number" id="offer-cost" placeholder="600">
+          </div>
+          <button class="btn btn-primary" id="offer-btn" onclick="postRide()">Post Ride</button>
+        </div>
+      </div>
+
+      <!-- My Rides -->
+      <div id="panel-my" class="hidden">
+        <div class="card">
+          <h3 style="margin-bottom:12px;font-size:.95rem">As Driver</h3>
+          <div id="my-driver-rides"><p class="text-muted">Loading…</p></div>
+        </div>
+        <div class="card mt-3">
+          <h3 style="margin-bottom:12px;font-size:.95rem">As Passenger</h3>
+          <div id="my-passenger-rides"><p class="text-muted">Loading…</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth(); initSidebar();
+
+  // Set default search time to 1hr from now
+  const soon = new Date(Date.now() + 3600000);
+  document.getElementById('search-time').value = soon.toISOString().slice(0, 16);
+  document.getElementById('offer-time').value  = soon.toISOString().slice(0, 16);
+
+  function switchTab(tab) {
+    ['find','offer','my'].forEach(t => {
+      document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
+      document.getElementById('tab-'   + t).className = t === tab ? 'btn btn-primary' : 'btn btn-outline';
+    });
+    if (tab === 'my') loadMyRides();
+  }
+
+  async function searchRides() {
+    const dest  = document.getElementById('search-dest').value.trim();
+    const time  = document.getElementById('search-time').value;
+    const seats = document.getElementById('search-seats').value;
+    if (!dest) return showAlert('alert', 'Enter a destination', 'error');
+
+    try {
+      const data = await api(`/rides/match?destination=${encodeURIComponent(dest)}&departureTime=${encodeURIComponent(new Date(time).toISOString())}&seats=${seats}`);
+      const rides = data.data.matched;
+      document.getElementById('rides-results').innerHTML = rides.length
+        ? rides.map(r => `
+            <div class="card mb-3">
+              <div class="flex" style="justify-content:space-between;align-items:start">
+                <div>
+                  <p class="fw-600">${r.origin} → ${r.destination}</p>
+                  <p class="text-muted">${formatDate(r.departureTime)}</p>
+                  <p class="text-muted">${r.availableSeats} seat(s) available</p>
+                </div>
+                <div style="text-align:right">
+                  <p class="fw-600" style="font-size:1.1rem;color:var(--primary)">KES ${r.costPerSeat}</p>
+                  <p class="text-muted" style="font-size:.8rem">per seat</p>
+                  <button class="btn btn-primary btn-sm mt-2" onclick="joinRide('${r.id}',${r.costPerSeat})">Join Ride</button>
+                </div>
+              </div>
+            </div>`).join('')
+        : '<p class="text-muted">No matching rides found. Try a different time or destination.</p>';
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+
+  async function joinRide(rideId, costPerSeat) {
+    if (!confirm(`Join this ride for KES ${costPerSeat} per seat?`)) return;
+    try {
+      const data = await api(`/rides/${rideId}/join`, { method: 'POST', body: { seats: 1 } });
+      showAlert('alert', `✅ Joined ride! Cost: KES ${data.data.costPerSeat}`, 'success');
+      searchRides();
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+
+  async function postRide() {
+    const body = {
+      origin:        document.getElementById('offer-origin').value.trim(),
+      destination:   document.getElementById('offer-dest').value.trim(),
+      departureTime: new Date(document.getElementById('offer-time').value).toISOString(),
+      totalSeats:    parseInt(document.getElementById('offer-seats').value),
+      totalCost:     parseInt(document.getElementById('offer-cost').value),
+    };
+    if (!body.destination || !body.totalCost) {
+      return showAlert('offer-alert', 'Please fill all fields', 'error');
+    }
+    setLoading('offer-btn', true, 'Post Ride');
+    try {
+      await api('/rides', { method: 'POST', body });
+      showAlert('alert', '✅ Ride posted successfully!', 'success');
+      switchTab('my');
+    } catch (err) {
+      showAlert('offer-alert', err.message, 'error');
+    } finally {
+      setLoading('offer-btn', false, 'Post Ride');
+    }
+  }
+
+  async function loadMyRides() {
+    try {
+      const data = await api('/rides/my');
+      const { asDriver, asPassenger } = data.data;
+
+      document.getElementById('my-driver-rides').innerHTML = asDriver.length
+        ? `<table><thead><tr><th>Destination</th><th>Departure</th><th>Seats Left</th><th>Status</th></tr></thead>
+           <tbody>${asDriver.map(r => `
+             <tr><td>${r.destination}</td><td>${formatDate(r.departureTime)}</td>
+             <td>${r.availableSeats}/${r.totalSeats}</td><td>${statusBadge(r.status)}</td></tr>`).join('')}
+           </tbody></table>`
+        : '<p class="text-muted">No rides offered yet.</p>';
+
+      document.getElementById('my-passenger-rides').innerHTML = asPassenger.length
+        ? `<table><thead><tr><th>Destination</th><th>Departure</th><th>Cost/Seat</th><th>Status</th></tr></thead>
+           <tbody>${asPassenger.map(r => `
+             <tr><td>${r.destination}</td><td>${formatDate(r.departureTime)}</td>
+             <td>KES ${r.costPerSeat}</td><td>${statusBadge(r.status)}</td></tr>`).join('')}
+           </tbody></table>`
+        : '<p class="text-muted">No rides joined yet.</p>';
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+</script>
+</body>
+</html>

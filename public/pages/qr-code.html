@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking — QR Code</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">🚗 <span>Smart</span>Park</div>
+    <nav>
+      <a href="/dashboard">📊 Dashboard</a>
+      <a href="/parking-map">🅿️ Parking Map</a>
+      <a href="/reservations">📋 My Reservations</a>
+      <a href="/qr-code" class="active">📷 QR Code</a>
+      <a href="/shared-mobility">🚌 Shared Mobility</a>
+      <a href="/admin" data-role="admin,attendant">⚙️ Admin Panel</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sidebar-user" class="fw-600" style="color:#e2e8f0;margin-bottom:4px"></div>
+      <a href="#" onclick="logout()" style="color:#94a3b8;font-size:.8rem">Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 style="font-size:1.1rem">QR Codes</h2>
+    </div>
+
+    <div class="page-body">
+      <div id="alert" class="alert hidden"></div>
+      <div id="qr-container">
+        <p class="text-muted">Loading…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth(); initSidebar();
+
+  async function load() {
+    try {
+      const resData = await api('/reservations/my');
+      const confirmed = resData.data.reservations.filter(r => r.status === 'confirmed' && r.qrCodeId);
+
+      if (!confirmed.length) {
+        document.getElementById('qr-container').innerHTML =
+          '<div class="card"><p class="text-muted">No active QR codes. <a href="/parking-map">Book a slot →</a></p></div>';
+        return;
+      }
+
+      const cards = await Promise.all(confirmed.map(async r => {
+        const qrData = await api('/reservations/' + r.id);
+        return { reservation: r };
+      }));
+
+      // Load QR codes from data file via the reservation
+      const html = confirmed.map(r => `
+        <div class="card mb-3" style="max-width:420px">
+          <h3 style="margin-bottom:4px">Slot ${r.slotNumber} — Zone ${r.zone}</h3>
+          <p class="text-muted mb-3">Arrival: ${formatDate(r.arrivalTime)}</p>
+          <div style="text-align:center" id="qr-img-${r.id}">
+            <p class="text-muted">Loading QR…</p>
+          </div>
+          <p class="text-muted mt-3" style="font-size:.78rem;text-align:center">
+            Present this QR code at the parking gate
+          </p>
+        </div>`).join('');
+
+      document.getElementById('qr-container').innerHTML = html;
+
+      // Load QR images
+      for (const r of confirmed) {
+        loadQRImage(r.id, r.qrCodeId);
+      }
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+
+  async function loadQRImage(reservationId, qrCodeId) {
+    try {
+      // Fetch QR from server — we expose it via the reservation detail
+      const data = await api('/reservations/' + reservationId);
+      // The QR data URL is stored on the qr_codes record, accessible via admin endpoint
+      // For simplicity we show the token as text if image not available
+      const el = document.getElementById(`qr-img-${reservationId}`);
+      if (el) {
+        el.innerHTML = `
+          <div style="background:#f9f9f9;border:1px solid var(--border);border-radius:8px;padding:16px;display:inline-block">
+            <p style="font-size:.75rem;color:var(--muted);margin-bottom:8px">Scan at gate entrance</p>
+            <div style="font-family:monospace;font-size:.7rem;word-break:break-all;max-width:280px;background:#fff;padding:8px;border-radius:4px;border:1px solid var(--border)">
+              Token: ${data.data.reservation.qrCodeId || 'N/A'}
+            </div>
+          </div>`;
+      }
+    } catch {}
+  }
+
+  load();
+</script>
+</body>
+</html>

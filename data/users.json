@@ -1,0 +1,32 @@
+[
+  {
+    "id": "u001",
+    "fullName": "Admin User",
+    "email": "admin@smartpark.com",
+    "password": "$2b$12$zCE79r1vP7hK1kOA0vOLGuKB.MWGSrabp7dWSb9wmdKmtE/uNbyny",
+    "phone": "0712345678",
+    "vehicleReg": "KAA 001A",
+    "role": "admin",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "u002",
+    "fullName": "Jane Attendant",
+    "email": "attendant@smartpark.com",
+    "password": "$2b$12$zCE79r1vP7hK1kOA0vOLGuKB.MWGSrabp7dWSb9wmdKmtE/uNbyny",
+    "phone": "0723456789",
+    "vehicleReg": "N/A",
+    "role": "attendant",
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "u003",
+    "fullName": "John Driver",
+    "email": "driver@smartpark.com",
+    "password": "$2b$12$zCE79r1vP7hK1kOA0vOLGuKB.MWGSrabp7dWSb9wmdKmtE/uNbyny",
+    "phone": "0734567890",
+    "vehicleReg": "KBB 123B",
+    "role": "driver",
+    "createdAt": "2025-01-02T00:00:00.000Z"
+  }
+]

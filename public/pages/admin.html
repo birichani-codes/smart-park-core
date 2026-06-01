@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking — Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">🚗 <span>Smart</span>Park</div>
+    <nav>
+      <a href="/dashboard">📊 Dashboard</a>
+      <a href="/parking-map">🅿️ Parking Map</a>
+      <a href="/reservations">📋 My Reservations</a>
+      <a href="/qr-code">📷 QR Code</a>
+      <a href="/shared-mobility">🚌 Shared Mobility</a>
+      <a href="/admin" class="active">⚙️ Admin Panel</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sidebar-user" class="fw-600" style="color:#e2e8f0;margin-bottom:4px"></div>
+      <a href="#" onclick="logout()" style="color:#94a3b8;font-size:.8rem">Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 style="font-size:1.1rem">Admin Dashboard</h2>
+      <button class="btn btn-outline btn-sm" onclick="loadAll()">↻ Refresh</button>
+    </div>
+
+    <div class="page-body">
+      <div id="alert" class="alert hidden"></div>
+
+      <!-- System Stats -->
+      <div class="stat-grid" id="stats-row"></div>
+
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-3">
+        <button class="btn btn-primary" id="tab-res"  onclick="switchTab('res')">Reservations</button>
+        <button class="btn btn-outline" id="tab-users" onclick="switchTab('users')">Users</button>
+      </div>
+
+      <!-- Reservations -->
+      <div id="panel-res" class="card">
+        <h3 style="margin-bottom:12px;font-size:.95rem">All Reservations</h3>
+        <div id="res-table"><p class="text-muted">Loading…</p></div>
+      </div>
+
+      <!-- Users -->
+      <div id="panel-users" class="card hidden">
+        <h3 style="margin-bottom:12px;font-size:.95rem">Registered Users</h3>
+        <div id="users-table"><p class="text-muted">Loading…</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth(['admin', 'attendant']); initSidebar();
+
+  function switchTab(tab) {
+    ['res','users'].forEach(t => {
+      document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
+      document.getElementById('tab-' + t).className = t === tab ? 'btn btn-primary' : 'btn btn-outline';
+    });
+  }
+
+  async function loadAll() {
+    try {
+      // Stats
+      const statsData = await api('/admin/stats');
+      const d = statsData.data;
+      document.getElementById('stats-row').innerHTML = `
+        <div class="stat-card green"><div class="value">${d.slots.available}</div><div class="label">Available Slots</div></div>
+        <div class="stat-card red"><div class="value">${d.slots.occupied}</div><div class="label">Occupied</div></div>
+        <div class="stat-card blue"><div class="value">${d.reservations.total}</div><div class="label">Total Reservations</div></div>
+        <div class="stat-card amber"><div class="value">KES ${d.payments.totalRevenue.toLocaleString()}</div><div class="label">Total Revenue</div></div>
+        <div class="stat-card blue"><div class="value">${d.users.total}</div><div class="label">Users</div></div>
+        <div class="stat-card green"><div class="value">${d.rides.open}</div><div class="label">Open Rides</div></div>`;
+
+      // Reservations
+      const resData = await api('/admin/reservations');
+      const res = resData.data.reservations;
+      document.getElementById('res-table').innerHTML = res.length
+        ? `<table>
+            <thead><tr><th>ID</th><th>User</th><th>Slot</th><th>Arrival</th><th>Status</th></tr></thead>
+            <tbody>${res.reverse().map(r => `
+              <tr>
+                <td style="font-family:monospace;font-size:.78rem">${r.id}</td>
+                <td>${r.userId}</td>
+                <td>${r.slotNumber} (${r.zone})</td>
+                <td>${formatDate(r.arrivalTime)}</td>
+                <td>${statusBadge(r.status)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>`
+        : '<p class="text-muted">No reservations.</p>';
+
+      // Users
+      const usersData = await api('/admin/users');
+      const users = usersData.data.users;
+      document.getElementById('users-table').innerHTML = `
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+          <tbody>${users.map(u => `
+            <tr>
+              <td>${u.fullName}</td>
+              <td>${u.email}</td>
+              <td>${u.phone}</td>
+              <td>${statusBadge(u.role)}</td>
+              <td>${formatDate(u.createdAt)}</td>
+              <td>
+                <select onchange="changeRole('${u.id}', this.value)" style="font-size:.8rem;padding:3px 6px">
+                  <option value="">Change role…</option>
+                  <option value="driver" ${u.role==='driver'?'selected':''}>Driver</option>
+                  <option value="attendant" ${u.role==='attendant'?'selected':''}>Attendant</option>
+                  <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+                </select>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`;
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+
+  async function changeRole(userId, role) {
+    if (!role) return;
+    try {
+      await api(`/admin/users/${userId}/role`, { method: 'PATCH', body: { role } });
+      showAlert('alert', 'Role updated successfully.', 'success');
+      loadAll();
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+
+  loadAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Parking — Reservations</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">🚗 <span>Smart</span>Park</div>
+    <nav>
+      <a href="/dashboard">📊 Dashboard</a>
+      <a href="/parking-map">🅿️ Parking Map</a>
+      <a href="/reservations" class="active">📋 My Reservations</a>
+      <a href="/qr-code">📷 QR Code</a>
+      <a href="/shared-mobility">🚌 Shared Mobility</a>
+      <a href="/admin" data-role="admin,attendant">⚙️ Admin Panel</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div id="sidebar-user" class="fw-600" style="color:#e2e8f0;margin-bottom:4px"></div>
+      <a href="#" onclick="logout()" style="color:#94a3b8;font-size:.8rem">Sign out</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h2 style="font-size:1.1rem">My Reservations</h2>
+      <a href="/parking-map" class="btn btn-primary btn-sm">+ New Reservation</a>
+    </div>
+
+    <div class="page-body">
+      <div id="alert" class="alert hidden"></div>
+      <div class="card">
+        <div id="table-body"><p class="text-muted">Loading…</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  requireAuth(); initSidebar();
+
+  function getReservationExpiry(reservation) {
+    if (reservation.expiresAt) return reservation.expiresAt;
+    if (!reservation.arrivalTime) return null;
+    return new Date(new Date(reservation.arrivalTime).getTime() + 60 * 60 * 1000).toISOString();
+  }
+
+  function getRemainingMs(expiry) {
+    return expiry ? new Date(expiry) - new Date() : 0;
+  }
+
+  async function updateCountdowns() {
+    document.querySelectorAll('.reservation-countdown').forEach(el => {
+      const expiry = el.dataset.expiry;
+      const remaining = getRemainingMs(expiry);
+      el.textContent = formatCountdown(remaining);
+      const extendBtn = document.getElementById(`extend-${el.dataset.id}`);
+      if (extendBtn) {
+        extendBtn.style.display = (remaining > 0 && remaining <= 15 * 60 * 1000) ? 'inline-flex' : 'none';
+      }
+    });
+  }
+
+  async function load() {
+    try {
+      const data = await api('/reservations/my');
+      const rows = data.data.reservations;
+      if (!rows.length) {
+        document.getElementById('table-body').innerHTML = '<p class="text-muted">No reservations found.</p>';
+        return;
+      }
+
+      document.getElementById('table-body').innerHTML = `
+        <table>
+          <thead><tr><th>Slot</th><th>Zone</th><th>Arrival</th><th>Expires In</th><th>Entry</th><th>Exit</th><th>Status</th><th></th></tr></thead>
+          <tbody>${rows.reverse().map(r => {
+            const expiry = getReservationExpiry(r);
+            const remaining = getRemainingMs(expiry);
+            return `
+              <tr>
+                <td>${r.slotNumber}</td>
+                <td>${r.zone}</td>
+                <td>${formatDate(r.arrivalTime)}</td>
+                <td class="reservation-countdown" id="countdown-${r.id}" data-expiry="${expiry || ''}" data-id="${r.id}">${expiry ? formatCountdown(remaining) : 'N/A'}</td>
+                <td>${formatDate(r.entryTime)}</td>
+                <td>${formatDate(r.exitTime)}</td>
+                <td>${statusBadge(r.status)}</td>
+                <td>
+                  ${r.status === 'confirmed' ? `<a href="/qr-code" class="btn btn-outline btn-sm">QR</a>` : ''}
+                  ${['pending_payment','confirmed'].includes(r.status)
+                    ? `<button class="btn btn-danger btn-sm" onclick="cancel('${r.id}')">Cancel</button>`
+                    : ''}
+                  ${r.status === 'confirmed' && remaining > 0 && remaining <= 15 * 60 * 1000
+                    ? `<button id="extend-${r.id}" class="btn btn-primary btn-sm" onclick="extendReservation('${r.id}')">Extend</button>`
+                    : ''}
+                </td>
+              </tr>`;
+          }).join('')}
+          </tbody>
+        </table>`;
+
+      updateCountdowns();
+      if (window.reservationCountdownTimer) clearInterval(window.reservationCountdownTimer);
+      window.reservationCountdownTimer = setInterval(updateCountdowns, 1000);
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+
+  async function cancel(id) {
+    if (!confirm('Cancel this reservation?')) return;
+    try {
+      await api('/reservations/' + id, { method: 'DELETE' });
+      showAlert('alert', 'Reservation cancelled.', 'success');
+      load();
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+
+  async function extendReservation(id) {
+    try {
+      const user = getUser();
+      const phone = user?.phone || '';
+      await api(`/reservations/${id}/extend`, {
+        method: 'POST',
+        body: { phone },
+      });
+      showAlert('alert', 'Reservation extended by 1 hour.', 'success');
+      load();
+    } catch (err) {
+      showAlert('alert', err.message, 'error');
+    }
+  }
+
+  load();
+</script>
+</body>
+</html>

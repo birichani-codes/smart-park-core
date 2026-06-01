@@ -1,0 +1,26 @@
+[
+  {
+    "id": "p001",
+    "userId": "u003",
+    "reservationId": "r001",
+    "rideId": null,
+    "amount": 200,
+    "phone": "0734567890",
+    "method": "mpesa",
+    "status": "completed",
+    "mpesaCode": "QGH7TY12KL",
+    "createdAt": "2025-12-30T10:01:00.000Z"
+  },
+  {
+    "id": "p_eb42f481",
+    "userId": "u001",
+    "reservationId": "r_34956896",
+    "rideId": null,
+    "amount": 200,
+    "phone": "0712345678",
+    "method": "mpesa",
+    "status": "completed",
+    "mpesaCode": "QGHO41A0HY",
+    "createdAt": "2026-05-31T17:54:45.257Z"
+  }
+]
