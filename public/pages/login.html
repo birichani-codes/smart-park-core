@@ -9,7 +9,7 @@
 <body>
 <div class="auth-wrapper">
   <div class="auth-box">
-    <h1>🚗 SmartPark</h1>
+    <h1>Smart<span>Park</span></h1>
     <p class="subtitle">Sign in to manage your parking</p>
 
     <div id="alert" class="alert hidden"></div>
@@ -29,11 +29,13 @@
       No account? <a href="/register">Register</a>
     </p>
 
-    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-      <p class="text-muted" style="font-size:.78rem;margin-bottom:8px">Test accounts (password: <code>password123</code>):</p>
-      <p class="text-muted" style="font-size:.78rem">Admin: admin@smartpark.com</p>
-      <p class="text-muted" style="font-size:.78rem">Attendant: attendant@smartpark.com</p>
-      <p class="text-muted" style="font-size:.78rem">Driver: driver@smartpark.com</p>
+    <div class="helper-panel">
+      <p class="helper-title">Test accounts</p>
+      <p>Use one of the following credentials to sign in:</p>
+      <pre>Admin:     admin@smartpark.com
+Attendant: attendant@smartpark.com
+Driver:    driver@smartpark.com
+Password:  password123</pre>
     </div>
   </div>
 </div>
