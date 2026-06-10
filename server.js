@@ -36,7 +36,7 @@ app.use('/api/payments',     paymentRoutes);
 app.use('/api/admin',        adminRoutes);
 
 app.get('/api/config', (req, res) => {
-  res.json({ data: { mapboxToken: process.env.MAPBOX_TOKEN || 'pk.eyJ1IjoiYmlyaWNoYW5pIiwiYSI6ImNtcTQyaTlqbzBibWwydHM4a3Z2NXVudDYifQ.ORq0Weukn6Zxt6GOOk608w' } });
+  res.json({ data: { mapboxToken: process.env.MAPBOX_TOKEN || '' } });
 });
 
 app.post('/api/hook/slot-status', (req, res) => {
