@@ -4,6 +4,7 @@ const { findOne, insert } = require('../utils/db');
 const { generateId } = require('../utils/generateId');
 const { success, error } = require('../utils/response');
 const { JWT_SECRET } = require('../middleware/auth');
+const { sendEmail } = require('../utils/email');
 
 // POST /api/auth/register
 async function register(req, res) {
@@ -25,6 +26,17 @@ async function register(req, res) {
       role: 'driver',
       createdAt: new Date().toISOString(),
     });
+
+    try {
+      await sendEmail({
+        to: email,
+        subject: 'Welcome to SmartPark',
+        text: `Welcome to SmartPark, ${fullName}! Your account has been created successfully.`,
+        html: `<p>Hi ${fullName},</p><p>Welcome to <strong>SmartPark</strong>. Your account is ready and you can now reserve parking slots, get QR access, and manage your trips.</p><p>Thanks,<br />SmartPark Team</p>`,
+      });
+    } catch (sendError) {
+      console.error('Welcome email failed:', sendError.message || sendError);
+    }
 
     const { password: _, ...safe } = user;
     return success(res, { user: safe }, 'Registration successful', 201);

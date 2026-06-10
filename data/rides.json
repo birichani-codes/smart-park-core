@@ -12,5 +12,19 @@
     "status": "open",
     "passengers": [],
     "createdAt": "2025-12-30T09:00:00.000Z"
+  },
+  {
+    "id": "rd_4203782e",
+    "driverId": "u001",
+    "origin": "Two Rivers Mall",
+    "destination": "TRM",
+    "departureTime": "2026-06-07T19:55:00.000Z",
+    "totalSeats": 5,
+    "availableSeats": 5,
+    "totalCost": 700,
+    "costPerSeat": 140,
+    "status": "open",
+    "passengers": [],
+    "createdAt": "2026-06-08T06:06:51.295Z"
   }
 ]

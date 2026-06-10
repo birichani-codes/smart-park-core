@@ -2,6 +2,7 @@ const QRCode = require('qrcode');
 const { readData, findAll, findOne, insert, updateById } = require('../utils/db');
 const { generateId } = require('../utils/generateId');
 const { success, error } = require('../utils/response');
+const { sendEmail } = require('../utils/email');
 
 const BASE_PARKING_PRICE = 200;
 
@@ -147,6 +148,20 @@ async function confirmReservation(req, res) {
       read: false,
       createdAt: new Date().toISOString(),
     });
+
+    const user = findOne('users', 'id', req.user.id);
+    if (user?.email) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: 'SmartPark Reservation Confirmed',
+          text: `Hi ${user.fullName},\n\nYour reservation for slot ${reservation.slotNumber} in Zone ${reservation.zone} is confirmed. Your QR code is ready for gate access.\n\nThank you for using SmartPark!`,
+          html: `<p>Hi ${user.fullName},</p><p>Your reservation for <strong>slot ${reservation.slotNumber}</strong> in <strong>Zone ${reservation.zone}</strong> is confirmed.</p><p>Your QR access is now ready. Use it at the parking gate to enter.</p><p>See you soon,<br />SmartPark Team</p>`,
+        });
+      } catch (sendError) {
+        console.error('Reservation confirmation email failed:', sendError.message || sendError);
+      }
+    }
 
     return success(res, { reservation: updated, qrCode: qrRecord }, 'Reservation confirmed');
   } catch (err) {

@@ -1,163 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Parking — Parking Map</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.17.0/mapbox-gl.css" rel="stylesheet" />
-</head>
-<body>
-<div class="layout">
-  <aside class="sidebar">
-    <div class="sidebar-logo">🚗 <span>Smart</span>Park</div>
-    <nav>
-      <a href="/dashboard">📊 Dashboard</a>
-      <a href="/parking-map" class="active">🅿️ Parking Map</a>
-      <a href="/reservations">📋 My Reservations</a>
-      <a href="/qr-code">📷 QR Code</a>
-      <a href="/shared-mobility">🚌 Shared Mobility</a>
-      <a href="/admin" data-role="admin,attendant">⚙️ Admin Panel</a>
-    </nav>
-    <div class="sidebar-footer">
-      <div id="sidebar-user" class="fw-600" style="color:#e2e8f0;margin-bottom:4px"></div>
-      <a href="#" onclick="logout()" style="color:#94a3b8;font-size:.8rem">Sign out</a>
-    </div>
-  </aside>
 
-  <div class="main">
-    <div class="topbar">
-      <h2 style="font-size:1.1rem">Parking Map</h2>
-      <div class="flex gap-2">
-        <select id="floor-filter" onchange="filterSlots()">
-          <option value="">All Floors</option>
-          <option value="1">Floor 1</option>
-          <option value="2">Floor 2</option>
-        </select>
-        <select id="zone-filter" onchange="filterSlots()">
-          <option value="">All Zones</option>
-          <option value="A">Zone A</option>
-          <option value="B">Zone B</option>
-          <option value="C">Zone C</option>
-        </select>
-        <button class="btn btn-outline btn-sm" onclick="loadSlots()">↻ Refresh</button>
-      </div>
-    </div>
-
-    <div class="page-body">
-      <div id="alert" class="alert hidden"></div>
-
-      <div class="topbar-secondary">
-        <div class="filter-group">
-          <label>Vehicle Type:</label>
-          <select id="vehicle-type-filter" onchange="filterByVehicleType()" class="btn btn-outline btn-sm">
-            <option value="">All Types</option>
-            <option value="ebike">E-Bikes</option>
-            <option value="shuttle">Shuttles</option>
-            <option value="cab">Cabs</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label>Parking Level:</label>
-          <select id="parking-level-filter" onchange="filterByParkingLevel()" class="btn btn-outline btn-sm">
-            <option value="">All Levels</option>
-            <option value="underground">Underground</option>
-            <option value="grade">Grade Level</option>
-          </select>
-        </div>
-        <div class="filter-group flex-grow">
-          <input id="search-places" type="text" placeholder="Search location or route..." class="map-search" style="flex:1;min-width:200px" />
-          <button class="btn btn-outline btn-sm" onclick="searchPlace()">Go</button>
-        </div>
-      </div>
-
-      <!-- Legend -->
-      <div class="flex gap-3 mb-3" style="flex-wrap:wrap">
-        <span><span class="slot slot-available" style="display:inline-block;width:20px;height:20px;border-radius:4px"></span> Available</span>
-        <span><span class="slot slot-occupied"  style="display:inline-block;width:20px;height:20px;border-radius:4px"></span> Occupied</span>
-        <span><span class="slot slot-reserved"  style="display:inline-block;width:20px;height:20px;border-radius:4px"></span> Reserved</span>
-      </div>
-
-      <div id="pricing-summary" class="parking-summary"></div>
-
-      <div id="slots-container" class="map-card card">
-        <div class="map-header">
-          <div>
-            <h3>Live parking layout</h3>
-            <p>Operational epicentre: Two Rivers Mall — streamlined dispatch for Thika Road, Northern Bypass and Limuru Road fleet flows.</p>
-          </div>
-          <div class="map-legend">
-            <span class="legend-chip"><span class="legend-dot" style="background:#a7f3d0"></span> Available</span>
-            <span class="legend-chip"><span class="legend-dot" style="background:#fecaca"></span> Occupied</span>
-            <span class="legend-chip"><span class="legend-dot" style="background:#fde68a"></span> Reserved</span>
-          </div>
-        </div>
-        <div class="map-wrapper">
-          <div id="parking-map-canvas" class="parking-map-canvas"></div>
-          <div id="map-control-panel" class="map-overlay">
-            <div class="map-action-row">
-              <input id="search-input" class="map-search" placeholder="Search zone, slot, route or vehicle" />
-              <select id="mode-select" class="btn btn-outline btn-sm">
-                <option value="drive">Driving</option>
-                <option value="walk">Walking</option>
-                <option value="realtime">Realtime</option>
-              </select>
-              <button class="btn btn-outline btn-sm" onclick="applyViewport()">Apply</button>
-            </div>
-            <div class="map-status-row">
-              <span id="map-status">Real-time connection ready</span>
-              <span id="map-summary" class="text-muted"></span>
-            </div>
-            <div class="map-status-row">
-              <span id="connectivity-status">Backend health: checking…</span>
-              <span id="fleet-metrics" class="text-muted"></span>
-            </div>
-            <div id="proximity-info" class="proximity-info hidden">
-              <span id="proximity-distance" class="proximity-metric">Distance: —</span>
-              <span id="proximity-eta" class="proximity-metric">ETA: —</span>
-            </div>
-          </div>
-          <div id="traffic-legend" class="traffic-legend">
-            <span class="legend-chip"><span class="legend-dot" style="background:#f87171"></span> Severe delay</span>
-            <span class="legend-chip"><span class="legend-dot" style="background:#fbbf24"></span> Moderate traffic</span>
-            <span class="legend-chip"><span class="legend-dot" style="background:#34d399"></span> Free flow</span>
-          </div>
-          <div id="slot-sheet" class="bottom-sheet hidden"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Reservation Modal -->
-<div class="modal-overlay hidden" id="modal">
-  <div class="modal">
-    <h2 id="modal-title">Reserve Slot</h2>
-    <p class="text-muted mb-3" id="modal-slot-info"></p>
-    <div id="modal-alert" class="alert hidden"></div>
-
-    <div class="form-group">
-      <label>Arrival Date & Time</label>
-      <input type="datetime-local" id="arrival-time">
-    </div>
-    <div class="form-group">
-      <label>Parking Fee (KES)</label>
-      <input type="number" id="amount" value="200" readonly>
-    </div>
-    <div class="form-group">
-      <label>M-Pesa Phone</label>
-      <input type="tel" id="mpesa-phone" placeholder="0712345678">
-    </div>
-    <div class="flex gap-2 mt-3">
-      <button class="btn btn-primary" id="reserve-btn" onclick="doReserve()">Pay & Reserve</button>
-      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<script src="/js/app.js"></script>
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.17.0/mapbox-gl.js"></script>
-<script>
   requireAuth();
   initSidebar();
 
@@ -166,55 +7,12 @@
   let selectedSlot = null;
   let currentStats = { total: 0, occupied: 0, reserved: 0, available: 0 };
   let map;
-  let mapboxToken = 'pk.eyJ1IjoiYmlyaWNoYW5pIiwiYSI6ImNtcTQyaTlqbzBibWwydHM4a3Z2NXVudDYifQ.ORq0Weukn6Zxt6GOOk608w';
+  let mapboxToken = '';
   const vehicleSourceData = { type: 'FeatureCollection', features: [] };
-  const activeVehicles = {
-    'TRM-001': {
-      vehicleId: 'TRM-001',
-      label: 'TRM-001',
-      route: 'Northern Bypass',
-      currentCoordinates: [36.8226, -1.2641],
-      status: 'Approaching',
-      eta: '04 min',
-      operator: 'Moses K.',
-      contact: '0722 123 456',
-      type: 'shuttle',
-    },
-    'TRM-002': {
-      vehicleId: 'TRM-002',
-      label: 'TRM-002',
-      route: 'Limuru Road Feed',
-      currentCoordinates: [36.8232, -1.2680],
-      status: 'Queued',
-      eta: '08 min',
-      operator: 'Jane W.',
-      contact: '0723 987 654',
-      type: 'cab',
-    },
-    'TRM-003': {
-      vehicleId: 'TRM-003',
-      label: 'TRM-003',
-      route: 'Kiambu Link',
-      currentCoordinates: [36.8180, -1.2580],
-      status: 'Inbound',
-      eta: '12 min',
-      operator: 'Alex M.',
-      contact: '0721 555 777',
-      type: 'ebike',
-    },
-  };
-  const MAP_CENTER = [36.8045, -1.2114];
+  const activeVehicles = {};
+  const MAP_CENTER = [36.8234, -1.2633];
   const mapStatus = document.getElementById('map-status');
   const mapSummary = document.getElementById('map-summary');
-
-  const knownPlaces = {
-    'thika': { name: 'Thika Superhighway / A2', coordinates: [36.8280, -1.2574] },
-    'northern-bypass': { name: 'Northern Bypass', coordinates: [36.8208, -1.2633] },
-    'limuru': { name: 'Limuru Road (C62)', coordinates: [36.8234, -1.2633] },
-    'kiambu': { name: 'Kiambu Road / Muthaiga', coordinates: [36.8180, -1.2580] },
-    'ruiru': { name: 'Ruiru Interchange', coordinates: [36.8320, -1.2400] },
-    'roysambu': { name: 'Roysambu Interchange', coordinates: [36.8250, -1.2300] },
-  };
 
   const trafficSegments = [
     {
@@ -222,34 +20,20 @@
       name: 'Thika Superhighway / A2',
       speedKmH: 18,
       coordinates: [[36.8280, -1.2574], [36.8240, -1.2608], [36.8208, -1.2633]],
-      corridor: 'eastern-supply-axis',
     },
     {
       id: 'northern-bypass',
       name: 'Northern Bypass',
       speedKmH: 14,
       coordinates: [[36.8208, -1.2633], [36.8148, -1.2590], [36.8098, -1.2550]],
-      corridor: 'eastern-supply-axis',
-    },
-    {
-      id: 'kiambu-muthaiga',
-      name: 'Kiambu Road / Muthaiga Link',
-      speedKmH: 28,
-      coordinates: [[36.8180, -1.2580], [36.8150, -1.2550], [36.8110, -1.2520]],
-      corridor: 'eastern-supply-axis',
     },
     {
       id: 'limuru-road',
       name: 'Limuru Road (C62)',
       speedKmH: 42,
       coordinates: [[36.8234, -1.2633], [36.8231, -1.2689], [36.8227, -1.2735]],
-      corridor: 'local-feeders',
     },
   ];
-
-  let currentVehicleTypeFilter = '';
-  let currentParkingLevelFilter = '';
-  let searchRoute = null;
 
   const perimeterBoundary = {
     type: 'Feature',
@@ -315,7 +99,7 @@
       container: 'parking-map-canvas',
       style: 'https://api.mapbox.com/styles/v1/mapbox/dark-v11?access_token=' + mapboxToken,
       center: MAP_CENTER,
-      zoom: 15.2,
+      zoom: 15.7,
       pitch: 42,
       bearing: -20,
       attributionControl: false,
@@ -346,14 +130,7 @@
         id: 'mall-fence-outline',
         type: 'line',
         source: 'mall-boundary',
-        paint: { 'line-color': '#38bdf8', 'line-width': 3, 'line-dasharray': [4, 4] },
-      });
-
-      map.addLayer({
-        id: 'mall-fence-glow',
-        type: 'line',
-        source: 'mall-boundary',
-        paint: { 'line-color': '#38bdf8', 'line-width': 8, 'line-dasharray': [4, 4], 'line-opacity': 0.2 },
+        paint: { 'line-color': '#38bdf8', 'line-width': 2, 'line-dasharray': [2, 2] },
       });
 
       map.addLayer({
@@ -926,62 +703,9 @@
     showAlert('alert', 'No matching slot, route, or vehicle found.', 'error');
   }
 
-  function calculateDistance(from, to) {
-    const R = 6371;
-    const dLat = (to[1] - from[1]) * Math.PI / 180;
-    const dLng = (to[0] - from[0]) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(from[1] * Math.PI / 180) * Math.cos(to[1] * Math.PI / 180) * Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }
-
-  function calculateETA(distance) {
-    const avgSpeed = 40;
-    const minutes = Math.ceil((distance / avgSpeed) * 60);
-    return `${minutes} min`;
-  }
-
-  function searchPlace() {
-    const query = document.getElementById('search-places').value.trim().toLowerCase();
-    if (!query) {
-      showAlert('alert', 'Enter a location name or route', 'error');
-      return;
-    }
-
-    const place = Object.values(knownPlaces).find(p => p.name.toLowerCase().includes(query)) || knownPlaces[query];
-    if (place && map) {
-      const distance = calculateDistance(MAP_CENTER, place.coordinates);
-      const eta = calculateETA(distance);
-      document.getElementById('proximity-distance').textContent = `Distance: ${distance.toFixed(2)} km`;
-      document.getElementById('proximity-eta').textContent = `ETA: ${eta}`;
-      document.getElementById('proximity-info').classList.remove('hidden');
-      map.flyTo({ center: place.coordinates, zoom: 15.5, speed: 0.9 });
-      showAlert('alert', `${place.name} • ${distance.toFixed(2)} km away`, 'success');
-      searchRoute = { from: MAP_CENTER, to: place.coordinates, name: place.name };
-      return;
-    }
-    showAlert('alert', 'Location not found. Try: Thika, Northern Bypass, Limuru, Kiambu, Ruiru, Roysambu', 'error');
-  }
-
-  function filterByVehicleType() {
-    currentVehicleTypeFilter = document.getElementById('vehicle-type-filter').value;
-    updateVehicleSource();
-  }
-
-  function filterByParkingLevel() {
-    currentParkingLevelFilter = document.getElementById('parking-level-filter').value;
-    updateSlotSource();
-  }
-
   window.applyViewport = applyViewport;
   window.openModal = openModal;
   window.closeModal = closeModal;
   window.doReserve = doReserve;
-  window.searchPlace = searchPlace;
-  window.filterByVehicleType = filterByVehicleType;
-  window.filterByParkingLevel = filterByParkingLevel;
 
   initializeMapPage();
-</script>
-</body>
-</html>
